@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>危険予知(KY)ミニゲーム</title>
+<style>
+:root{
+  --bg:#f3f5f8;--card:#ffffff;--soft:#e8eef5;--text:#16202c;--muted:#465363;--line:#b3bdc9;
+  --primary:#14305a;--on-primary:#ffffff;--accent:#f5b700;--on-accent:#16202c;
+  --ok:#0d6b2e;--ng:#a61b1b;--warn:#7a4f00;--focus:#7a3df0;--hdr:#14305a;--on-hdr:#ffffff;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141b;--card:#18212b;--soft:#222d39;--text:#e9eef3;--muted:#b6c2ce;--line:#516070;
+    --primary:#f5b700;--on-primary:#10161d;--accent:#f5b700;--on-accent:#10161d;
+    --ok:#6fd08c;--ng:#ff9b9b;--warn:#ffcb6b;--focus:#c2a4ff;--hdr:#18212b;--on-hdr:#e9eef3;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141b;--card:#18212b;--soft:#222d39;--text:#e9eef3;--muted:#b6c2ce;--line:#516070;
+  --primary:#f5b700;--on-primary:#10161d;--accent:#f5b700;--on-accent:#10161d;
+  --ok:#6fd08c;--ng:#ff9b9b;--warn:#ffcb6b;--focus:#c2a4ff;--hdr:#18212b;--on-hdr:#e9eef3;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;line-height:1.75;font-size:17px}
+.wrap{max-width:780px;margin:0 auto;padding:16px}
+header.top{position:relative;overflow:hidden;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;background:var(--hdr);color:var(--on-hdr);border-radius:14px;padding:10px 16px 20px}
+header.top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:repeating-linear-gradient(135deg,var(--accent) 0 12px,#16202c 12px 24px)}
+header.top .brand{font-weight:700;font-size:1rem;margin:0;letter-spacing:.04em}
+nav{display:flex;flex-wrap:wrap;gap:8px}
+header.top .btn{background:transparent;color:var(--on-hdr);border-color:var(--on-hdr)}
+h1{font-size:1.8rem;line-height:1.3;margin:.2em 0 .4em;letter-spacing:.02em}
+h2{font-size:1.25rem;line-height:1.4;margin:1.3em 0 .4em}
+h3{font-size:1.05rem;margin:1em 0 .3em}
+h1:focus,h2:focus,[data-focus]:focus{outline:3px solid var(--focus);outline-offset:3px}
+p{margin:.5em 0}
+.lead{font-size:1.08rem}
+.note{color:var(--muted);font-size:.95rem}
+.eyebrow{margin:18px 0 0;color:var(--muted);font-weight:700;letter-spacing:.12em;font-size:.9rem}
+.skip{position:absolute;left:-999px;top:0;background:var(--card);color:var(--text);padding:10px;z-index:10}
+.skip:focus{left:8px;top:8px;outline:3px solid var(--focus)}
+.btn,.card-btn,.opt,.goal{font:inherit;color:var(--text);background:var(--card);border:2px solid var(--line);border-radius:12px;min-height:48px;min-width:48px;padding:10px 16px;cursor:pointer;text-align:left}
+.btn{border-color:var(--primary)}
+nav .btn{min-height:44px;padding:6px 14px;text-align:center}
+.btn.primary{background:var(--primary);color:var(--on-primary);font-weight:700;text-align:center;border-color:var(--primary)}
+.btn[disabled]{opacity:.6;cursor:not-allowed}
+.card-btn:hover,.opt:hover,.goal:hover{border-color:var(--accent)}
+.btn:focus-visible,.card-btn:focus-visible,.opt:focus-visible,.goal:focus-visible,.hz:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:4px solid var(--focus);outline-offset:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:10px 0}
+.card-btn{display:flex;flex-direction:column;gap:2px;padding:14px 16px;min-height:112px;border-left:8px solid var(--accent)}
+.card-btn strong{font-size:1.2rem}
+.card-btn span{color:var(--muted);font-size:.93rem}
+.card-btn .no{font-weight:800;letter-spacing:.12em}
+.card-btn .best{color:var(--text);font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.panel{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px 16px;margin:12px 0}
+.panel h2:first-child,.panel h3:first-child{margin-top:.2em}
+.warn{background:var(--soft);border:2px solid var(--warn);color:var(--text);border-radius:10px;padding:8px 14px;margin:10px 0;font-weight:700}
+.hud{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:8px 14px;margin:14px 0 8px}
+.crumb{margin:0;color:var(--muted);font-size:.9rem}
+.pips,.steps{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:4px 0 0;padding:0}
+.pips li{min-width:34px;text-align:center;border:2px solid var(--line);border-radius:8px;font-weight:700;font-size:.9rem;color:var(--muted);padding:0 6px}
+.pips li.cur{border-color:var(--primary);color:var(--text);background:var(--soft)}
+.pips li.done{border-color:var(--ok);color:var(--ok)}
+.steps li{border:2px solid var(--line);border-radius:999px;padding:0 12px;font-size:.9rem;color:var(--muted)}
+.steps li.cur{border-color:var(--primary);color:var(--text);font-weight:700;background:var(--soft)}
+.score-box{margin:0;text-align:right}
+.score-box .lab{color:var(--muted);font-size:.85rem;font-weight:700;letter-spacing:.1em}
+.score{font-weight:800;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.stage{position:relative;width:100%;max-width:720px;aspect-ratio:400/240;border:2px solid var(--line);border-radius:12px;overflow:hidden;background:#e9eff6;margin:10px 0}
+.stage svg{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.hz{position:absolute;left:var(--cx);top:var(--cy);width:max(var(--w),44px);height:max(var(--h),44px);transform:translate(-50%,-50%);background:transparent;border:3px dashed transparent;border-radius:10px;padding:0;margin:0;cursor:pointer}
+.hz:focus-visible{background:rgba(122,61,240,.14)}
+.hz.found{border:3px solid #0d6b2e;background:rgba(13,107,46,.22)}
+.hz.found::after{content:"✓";position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:#0d6b2e;color:#fff;font-weight:700;font-size:14px;line-height:22px;text-align:center}
+.stage.hint .hz:not(.found){border:3px solid #a35f00;background:rgba(255,176,0,.38)}
+@media (prefers-reduced-motion:no-preference){
+  .stage.hint .hz:not(.found){animation:glow 1s ease-in-out 4}
+  @keyframes glow{50%{background:rgba(255,176,0,.12)}}
+  .hz.found::after{animation:pop .25s ease-out}
+  @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+}
+.count{font-weight:700;margin:6px 0}
+.msg{min-height:1.75em;color:var(--text);margin:4px 0;font-weight:700}
+.found-list{list-style:none;margin:6px 0;padding:0}
+.found-list li{background:var(--card);border-left:6px solid var(--ok);border-radius:6px;padding:6px 12px;margin:6px 0}
+.opts{display:grid;gap:10px;margin:10px 0}
+.opt,.goal{width:100%}
+.opt{display:flex;gap:12px;align-items:flex-start}
+.opt .k{flex:none;width:28px;height:28px;border-radius:8px;background:var(--primary);color:var(--on-primary);font-weight:800;text-align:center;line-height:28px}
+.opt.is-correct{border-color:var(--ok);border-width:4px;font-weight:700}
+.opt.is-wrong{border-color:var(--ng);border-style:dashed;border-width:4px}
+.opt[aria-disabled="true"]{cursor:default}
+.goal[aria-pressed="true"]{border-color:var(--primary);border-width:4px;background:var(--soft);font-weight:700}
+.fb{border-radius:10px;padding:10px 16px;margin:12px 0;background:var(--card);border:2px solid var(--line)}
+.fb.ok{border-color:var(--ok);border-left-width:8px}
+.fb.ng{border-color:var(--ng);border-left-width:8px}
+.fb.ok strong:first-child{color:var(--ok)}
+.fb.ng strong:first-child{color:var(--ng)}
+.big{font-size:1.3rem;font-weight:800}
+.stars{color:var(--warn);letter-spacing:2px;font-weight:700}
+.hero{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px 18px;margin:10px 0}
+.rank{flex:none;width:88px;height:88px;border-radius:20px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-size:3rem;font-weight:800;border:4px solid var(--accent)}
+.rank-name{margin:0;font-size:1.15rem;font-weight:700}
+.chip{display:inline-block;background:var(--accent);color:var(--on-accent);font-weight:700;border-radius:999px;padding:0 14px;margin:2px 0}
+ul.plain{margin:.4em 0;padding-left:1.3em}
+ul.plain li{margin:.3em 0}
+.kv{display:grid;grid-template-columns:1fr;gap:4px}
+.kv .panel{margin:6px 0}
+footer{margin-top:28px;padding-top:12px;border-top:2px solid var(--line);color:var(--muted);font-size:.92rem}
+footer h2{font-size:1rem;color:var(--text);margin:.4em 0}
+footer dl{margin:.4em 0}
+footer dt{font-weight:700;color:var(--text)}
+footer dd{margin:0 0 .5em 0}
+select,input[type=file]{font:inherit;color:var(--text);background:var(--card);border:2px solid var(--primary);border-radius:10px;min-height:44px;padding:6px 10px;max-width:100%}
+label{font-weight:700;display:block;margin:.6em 0 .2em}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media (max-width:480px){body{font-size:16px}.wrap{padding:12px}h1{font-size:1.5rem}.score-box{text-align:left}}
+</style>
+</head>
+<body>
+<a class="skip" href="#app">本文へ移動</a>
+<div class="wrap">
+  <header class="top">
+    <p class="brand" id="brand"></p>
+    <nav aria-label="メニュー" id="nav"></nav>
+  </header>
+  <div id="storage-warn" class="warn" role="status" hidden>このブラウザでは記録を保存できません。画面を閉じると消えます</div>
+  <main id="app"></main>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIG(データ)── 会社ごとに、ここだけを差し替えます
+   ---------------------------------------------------------------------
+   【会社ごとの差し替え手順】
+   1. companyName と disclaimer を、依頼先の会社名・注意書きに変える。
+   2. intro(トップ画面の説明)と customPage(「貴社版では」ページ)を、実際の納品内容に合わせて直す。
+   3. industries の中の scenes を、その会社の実際の場面に差し替える。
+      ・svg      : 場面の絵(インラインSVG。viewBox は必ず "0 0 400 240")。
+      ・hazards  : 危険箇所。x,y,w,h は、SVGと同じ座標(0〜400 × 0〜240)で、絵の上に重なる範囲。
+                   1場面に2〜3か所。id は場面の中で重ならないようにする。
+      ・options  : 対策の選択肢。correct:true は、1場面に必ず1つだけ。
+      ・goals    : 行動目標の候補。「私たちは〜します」の形で書く。
+   4. 場面の id(f1 など)を変えるときは、書き出した記録との対応が切れます。変えずに中身だけ直すのが安全です。
+   5. 画像・写真・外部ファイル・外部通信は使わない(1ファイルで完結させる)。
+   6. references(参考資料)も、実際に使った資料に合わせて直す。
+   プログラム(下の <script> の「ここから先は、触らない」以降)は、変更しません。
+   ===================================================================== */
+const CONFIG = {
+  companyName: "サンプル工業(架空)",
+  disclaimer: "この教材は見本です。実際の作業では、貴社の手順を優先してください。",
+  intro: "舞台は、架空の会社「サンプル工業(架空)」です。新人やアルバイトの人が、現場の「あぶない!」に気づく練習をします。1つの場面を「みつける → 考える → 決める」の3段階で進め、約10分で終わります。",
+  customPage: {
+    title: "貴社版では、ここが変わります",
+    lead: "この見本は、架空の会社の一般的な場面でできています。貴社版では、次の5つを、貴社の現場に合わせて作ります。",
+    items: [
+      { title: "① 貴社の実際のルールと手順", text: "貴社で決まっている作業の手順や、守るルールを、そのまま場面と対策に入れます。" },
+      { title: "② 現場で使われている言葉", text: "現場で実際に使っている呼び方や、略し方に合わせます。新人が、現場に出てすぐ分かる言葉にします。" },
+      { title: "③ 実際の現場の写真や図", text: "見本のイラストの代わりに、貴社の現場の写真や図を使います。(撮影や使用の許可は、貴社でご確認ください。)" },
+      { title: "④ よくある失敗やヒヤリとした事例", text: "貴社で実際にあった、ヒヤリとした事例や、よくある失敗を、場面にします。" },
+      { title: "⑤ 受講後の確認(確認テスト)", text: "学んだことが身についたかを、短いテストで確かめます。結果は、教える人が確認できる形にします。" }
+    ],
+    deliveryNote: "ご依頼をいただいてから、1週間以内を目安に、貴社専用の内容に差し替えてお渡しします。",
+    contact: ""
+  },
+  industries: [
+    { id: "factory", name: "製造", scenes: [
+      { id: "f1", title: "カバーのない機械と、広い袖", description: "機械が動いている作業場です。そばで、人が作業をしています。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="150" y="90" width="110" height="100" rx="6" fill="#7f8c99"/><rect x="160" y="78" width="90" height="14" fill="#5f6d7a"/><rect x="172" y="112" width="66" height="50" fill="#3b4652"/><circle cx="193" cy="137" r="16" fill="#d6a21e"/><circle cx="193" cy="137" r="5" fill="#3b4652"/><circle cx="222" cy="140" r="12" fill="#d6a21e"/><circle cx="222" cy="140" r="4" fill="#3b4652"/><rect x="98" y="150" width="42" height="40" fill="#9aa7b3" stroke="#5f6d7a" stroke-width="2"/><rect x="294" y="174" width="11" height="30" fill="#33404d"/><rect x="309" y="174" width="11" height="30" fill="#33404d"/><rect x="292" y="128" width="30" height="46" rx="6" fill="#2f6fb0"/><path d="M292 132 L260 148 L268 168 L294 152z" fill="#2f6fb0"/><circle cx="307" cy="112" r="14" fill="#f2c9a0"/><path d="M293 108 a14 14 0 0 1 28 0z" fill="#f2b705"/></svg>`,
+        hazards: [
+          { id: "h1", label: "外れたカバー", x: 168, y: 106, w: 74, h: 60, explain: "機械の動く部分が見えています。手や服が引っぱられる(巻き込まれる)おそれがあります。" },
+          { id: "h2", label: "広がった袖", x: 255, y: 125, w: 50, h: 50, explain: "ゆったりした袖は、動く部分に引っかかりやすい服装です。一般的に、袖はまとめて着ることが推奨されています。" }
+        ],
+        question: "巻き込まれを防ぐには、どうするのがよいでしょうか?",
+        options: [
+          { text: "機械を止めてカバーを戻し、袖をまとめた作業服で作業する", correct: true, feedback: "動く部分をふさぎ、服が引っかからない状態にするのが基本です。" },
+          { text: "機械が動いたまま、できるだけ手早く作業する", correct: false, feedback: "急ぐと、手元の注意がそれます。危ない部分が見えたままでは、防げません。" },
+          { text: "各自が、気をつけて作業するよう心がける", correct: false, feedback: "「気をつける」だけでは、うっかりを防げません。カバーなどの仕組みで守ることが大切です。" }
+        ],
+        goals: [ "私たちは、機械を止めてから、カバーの状態を確認します", "私たちは、動く機械のそばでは、袖や裾をまとめた服を着ます", "私たちは、カバーが外れているのを見つけたら、すぐ責任者に知らせます" ] },
+      { id: "f2", title: "床の油と部品", description: "機械のそばを、人が行き来する通路です。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="40" y="90" width="120" height="100" rx="6" fill="#7f8c99"/><rect x="60" y="110" width="40" height="30" fill="#c9d3dc"/><rect x="110" y="110" width="30" height="60" fill="#5f6d7a"/><ellipse cx="170" cy="212" rx="42" ry="10" fill="#7a5d1a"/><ellipse cx="160" cy="209" rx="14" ry="3" fill="#a98428"/><rect x="250" y="204" width="22" height="10" rx="2" fill="#5f6d7a"/><circle cx="285" cy="210" r="6" fill="#5f6d7a"/><rect x="262" y="214" width="16" height="8" fill="#9aa7b3"/><rect x="334" y="178" width="11" height="28" fill="#33404d"/><rect x="349" y="178" width="11" height="28" fill="#33404d"/><rect x="330" y="134" width="30" height="46" rx="6" fill="#2f6fb0"/><circle cx="345" cy="118" r="14" fill="#f2c9a0"/><path d="M331 114 a14 14 0 0 1 28 0z" fill="#f2b705"/></svg>`,
+        hazards: [
+          { id: "h1", label: "床の油", x: 125, y: 196, w: 90, h: 30, explain: "油がこぼれた床は、とてもすべりやすくなります。つまずき・転倒のもとです。" },
+          { id: "h2", label: "床に置かれた部品", x: 242, y: 194, w: 56, h: 32, explain: "通路に部品が落ちていると、足を取られてつまずきます。持ち運ぶ人の足元も見えにくくなります。" }
+        ],
+        question: "つまずきや転倒を防ぐには、どうするのがよいでしょうか?",
+        options: [
+          { text: "油はすぐにふき取り、部品は決まった置き場所に戻す", correct: true, feedback: "危険のもとを、その場でなくすのが基本です。" },
+          { text: "足元に気をつけて、ゆっくり歩く", correct: false, feedback: "気をつけても、油は見えにくいことがあります。通る人みんなが、危ない状態のままになります。" },
+          { text: "いそがしいので、あとでまとめて片づける", correct: false, feedback: "「あとで」の間に、だれかが転ぶおそれがあります。気づいたときに直すことが大切です。" }
+        ],
+        goals: [ "私たちは、床に油や部品を見つけたら、その場で片づけます", "私たちは、使った部品を、決まった置き場所に戻します", "私たちは、すぐに片づけられないときは、近づかないよう知らせます" ] },
+      { id: "f3", title: "重い箱の持ち上げ", description: "箱を持ち上げて、運ぼうとしています。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="40" y="110" width="60" height="80" fill="#9aa7b3"/><rect x="226" y="140" width="80" height="55" fill="#c58f4d" stroke="#8a5f2a" stroke-width="3"/><rect x="226" y="160" width="80" height="6" fill="#8a5f2a"/><rect x="142" y="166" width="13" height="38" fill="#33404d"/><rect x="158" y="166" width="13" height="38" fill="#33404d"/><path d="M150 170 L198 138" stroke="#2f6fb0" stroke-width="26" stroke-linecap="round"/><circle cx="204" cy="120" r="13" fill="#f2c9a0"/><path d="M191 116 a13 13 0 0 1 26 0z" fill="#f2b705"/><path d="M196 148 L230 166" stroke="#f2c9a0" stroke-width="8" stroke-linecap="round"/></svg>`,
+        hazards: [
+          { id: "h1", label: "腰を曲げた持ち方", x: 122, y: 105, w: 98, h: 100, explain: "ひざを伸ばしたまま、腰を曲げて持ち上げると、腰に大きな負担がかかります。" },
+          { id: "h2", label: "重さの分からない箱", x: 224, y: 138, w: 84, h: 58, explain: "重さを確かめずに持つと、思ったより重くて、腰を痛めることがあります。" }
+        ],
+        question: "腰を痛めないために、どうするのがよいでしょうか?",
+        options: [
+          { text: "ひざを曲げて、箱を体に近づけて持つ。重いときは台車を使うか、人を呼ぶ", correct: true, feedback: "足の力も使い、腰の負担を減らします。無理をしないことも大切です。" },
+          { text: "腰を深く曲げて、一気に持ち上げる", correct: false, feedback: "腰に大きな力がかかります。一気に持つと、痛めやすくなります。" },
+          { text: "重さは確かめず、勢いをつけて持つ", correct: false, feedback: "勢いをつけると、体にかかる力が大きくなります。まず、重さを確かめることが大切です。" }
+        ],
+        goals: [ "私たちは、持つ前に、箱の重さを確かめます", "私たちは、重いものは、台車を使うか、2人で運びます", "私たちは、ひざを曲げ、荷物を体に近づけて持ち上げます" ] }
+    ] },
+    { id: "transport", name: "運送・配送", scenes: [
+      { id: "t1", title: "荷台からの降り方", description: "荷物を運び終えて、荷台から降りるところです。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="195" width="400" height="45" fill="#b9c3cd"/><rect x="20" y="95" width="55" height="59" rx="6" fill="#2f6fb0"/><rect x="28" y="103" width="22" height="20" fill="#cfe5f7"/><rect x="70" y="140" width="170" height="14" fill="#6a7885"/><rect x="90" y="105" width="50" height="35" fill="#c58f4d"/><rect x="145" y="115" width="40" height="25" fill="#c58f4d"/><circle cx="55" cy="172" r="20" fill="#2b333b"/><circle cx="200" cy="172" r="20" fill="#2b333b"/><path d="M268 178 L258 200" stroke="#33404d" stroke-width="11" stroke-linecap="round"/><path d="M282 178 L294 198" stroke="#33404d" stroke-width="11" stroke-linecap="round"/><rect x="262" y="142" width="28" height="36" rx="6" fill="#2f6fb0"/><circle cx="276" cy="127" r="12" fill="#f2c9a0"/><path d="M264 123 a12 12 0 0 1 24 0z" fill="#f2b705"/><rect x="290" y="140" width="32" height="24" fill="#c58f4d" stroke="#8a5f2a" stroke-width="2"/></svg>`,
+        hazards: [
+          { id: "h1", label: "飛び降りる人", x: 252, y: 112, w: 76, h: 92, explain: "高さのある荷台から飛び降りると、足や腰を痛めやすくなります。荷物で、足元も見えにくくなります。" },
+          { id: "h2", label: "足がかりのない荷台の端", x: 205, y: 132, w: 45, h: 36, explain: "昇り降りは、手と足の3か所で体を支える「3点支持」が、一般的に推奨されています。" }
+        ],
+        question: "荷台から安全に降りるには、どうするのがよいでしょうか?",
+        options: [
+          { text: "荷物は先に下ろし、手すりや足がかりを使って、3点で体を支えて降りる", correct: true, feedback: "手が空いていれば、体を安定させて降りられます。" },
+          { text: "急いでいるので、荷物を持ったまま飛び降りる", correct: false, feedback: "着地でバランスをくずしやすく、けがのもとです。急ぐときほど、安全な降り方が大切です。" },
+          { text: "荷物で両手がふさがっていても、そのまま降りる", correct: false, feedback: "手で体を支えられず、足をふみはずすおそれがあります。" }
+        ],
+        goals: [ "私たちは、荷台からは、飛び降りずに、足がかりを使って降ります", "私たちは、荷物を先に下ろして、両手を空けてから降ります", "私たちは、昇り降りでは、3点で体を支えます" ] },
+      { id: "t2", title: "出発前の確認", description: "配送に出発する前の、車のまわりです。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="150" y="70" width="200" height="110" rx="6" fill="#d7dee6" stroke="#8b99a6" stroke-width="3"/><path d="M30 182 L30 112 Q30 96 46 96 L112 96 L150 130 L150 182z" fill="#2f6fb0"/><rect x="55" y="106" width="45" height="30" fill="#cfe5f7"/><circle cx="76" cy="122" r="9" fill="#f2c9a0"/><rect x="30" y="140" width="14" height="22" rx="3" fill="#8f8a6a"/><path d="M112 112 L135 98" stroke="#2b333b" stroke-width="5"/><rect x="128" y="86" width="18" height="24" rx="3" fill="#2b333b" transform="rotate(35 137 98)"/><ellipse cx="75" cy="185" rx="24" ry="16" fill="#2b333b"/><circle cx="275" cy="178" r="22" fill="#2b333b"/></svg>`,
+        hazards: [
+          { id: "h1", label: "空気が少なそうなタイヤ", x: 58, y: 165, w: 60, h: 42, explain: "タイヤがつぶれて見えます。出発前に、見て確かめることが大切です。" },
+          { id: "h2", label: "向きの合っていないミラー", x: 105, y: 78, w: 50, h: 50, explain: "ミラーの向きが合っていないと、横や後ろが見えにくくなります。" },
+          { id: "h3", label: "汚れたライト", x: 8, y: 128, w: 44, h: 36, explain: "ライトが汚れていると、暗くなり、まわりからも見えにくくなります。" }
+        ],
+        question: "出発前に、どうするのがよいでしょうか?",
+        options: [
+          { text: "タイヤ・ミラー・ライトを、決まった順番で見て確かめてから出発する", correct: true, feedback: "毎回、同じ順番で見ると、見落としが減ります。" },
+          { text: "いつも通っている道なので、確認は省いて出発する", correct: false, feedback: "いつもと同じに見えても、車の状態は変わります。出発前の確認は、省かないことが大切です。" },
+          { text: "運転中に気づいたら、そのときに直す", correct: false, feedback: "走っている間は、直せないことが多く、危険です。出発前に見つけることが大切です。" }
+        ],
+        goals: [ "私たちは、出発前に、タイヤ・ミラー・ライトを必ず見ます", "私たちは、気になるところがあれば、出発する前に責任者に伝えます", "私たちは、確認の結果を、決まった形で記録します" ] },
+      { id: "t3", title: "雨の日の荷下ろし", description: "雨がふる中で、荷物を下ろしています。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#dbe4ee"/><path d="M30 15 l-8 20 M90 40 l-8 20 M150 10 l-8 20 M210 35 l-8 20 M270 12 l-8 20 M330 38 l-8 20 M60 90 l-8 20 M180 85 l-8 20 M300 80 l-8 20 M120 140 l-8 20 M240 135 l-8 20 M370 120 l-8 20" stroke="#4d6d8d" stroke-width="2.5" stroke-linecap="round"/><rect y="190" width="400" height="50" fill="#9fb0bf"/><ellipse cx="110" cy="214" rx="58" ry="10" fill="#7fa1c0"/><rect x="330" y="70" width="70" height="120" fill="#d7dee6" stroke="#8b99a6" stroke-width="3"/><path d="M215 190 L330 160 L330 190z" fill="#7a8896"/><rect x="274" y="168" width="10" height="14" fill="#33404d"/><rect x="288" y="166" width="10" height="14" fill="#33404d"/><rect x="272" y="132" width="28" height="38" rx="6" fill="#2f6fb0"/><circle cx="286" cy="118" r="13" fill="#f2c9a0"/><path d="M273 114 a13 13 0 0 1 26 0z" fill="#f2b705"/><rect x="298" y="140" width="26" height="22" fill="#c58f4d" stroke="#8a5f2a" stroke-width="2"/></svg>`,
+        hazards: [
+          { id: "h1", label: "ぬれた床", x: 45, y: 198, w: 130, h: 32, explain: "雨でぬれた床は、すべりやすくなります。水たまりは、足元が見えにくいです。" },
+          { id: "h2", label: "ぬれた傾斜(スロープ)", x: 210, y: 172, w: 125, h: 30, explain: "ぬれた傾斜は、さらにすべりやすく、荷物の重さも加わって、転びやすくなります。" }
+        ],
+        question: "すべって転ばないために、どうするのがよいでしょうか?",
+        options: [
+          { text: "床の水をふき、すべりにくい靴で、足元を見ながら、無理のない量を運ぶ", correct: true, feedback: "すべる原因を減らし、足元を見られる状態にします。" },
+          { text: "いつもの量を、急いで運ぶ", correct: false, feedback: "ぬれた場所で急ぐと、すべって転ぶおそれが高まります。" },
+          { text: "転んでもよいように、荷物を強く抱える", correct: false, feedback: "転んだときに手をつけず、かえって危険です。まず、転ばない状態をつくります。" }
+        ],
+        goals: [ "私たちは、雨の日は、床や傾斜の水をふいてから作業します", "私たちは、すべりにくい靴をはき、足元を見て歩きます", "私たちは、雨の日は、荷物の量を減らして運びます" ] }
+    ] },
+    { id: "waste", name: "廃棄物処理", scenes: [
+      { id: "w1", title: "分別されていないごみ", description: "回収したごみを、仕分ける場所です。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="270" y="130" width="70" height="60" fill="#2f8f5b"/><rect x="278" y="120" width="54" height="12" fill="#256f47"/><path d="M110 120 L120 190 L220 190 L230 120z" fill="#6a7885"/><circle cx="132" cy="128" r="12" fill="#c9d3dc"/><rect x="150" y="96" width="22" height="48" rx="5" fill="#d9483b"/><rect x="155" y="88" width="12" height="9" fill="#9aa7b3"/><rect x="188" y="108" width="14" height="30" rx="2" fill="#2b333b"/><rect x="188" y="108" width="14" height="8" fill="#d6a21e"/><rect x="208" y="112" width="14" height="30" rx="2" fill="#2b333b"/><rect x="208" y="112" width="14" height="8" fill="#d6a21e"/></svg>`,
+        hazards: [
+          { id: "h1", label: "混ざったスプレー缶", x: 140, y: 82, w: 40, h: 66, explain: "中身が残ったスプレー缶は、つぶしたり熱が加わったりすると、火事の原因になることがあります。" },
+          { id: "h2", label: "混ざった電池", x: 184, y: 100, w: 46, h: 46, explain: "電池は、強い力や熱で、発熱や発火のおそれがあります。" }
+        ],
+        question: "火事を防ぐために、どうするのがよいでしょうか?",
+        options: [
+          { text: "混ざらないように、受け入れのときに分け、見つけたら決められた置き場所へ分ける", correct: true, feedback: "危ないものを、早い段階で別にすることが大切です。" },
+          { text: "ほかのごみと一緒に、つぶして処理する", correct: false, feedback: "つぶす力や熱で、発火するおそれがあります。" },
+          { text: "見なかったことにして、次の人に任せる", correct: false, feedback: "次の人が、気づかないまま作業してしまうかもしれません。気づいた人が知らせることが大切です。" }
+        ],
+        goals: [ "私たちは、スプレー缶や電池を見つけたら、決められた場所へ分けます", "私たちは、混ざりやすいものを、受け入れのときに確認します", "私たちは、分け方が分からないものは、責任者に聞いてから扱います" ] },
+      { id: "w2", title: "手作業の仕分け", description: "ごみを、手で仕分けています。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="130" y="114" width="40" height="30" rx="6" fill="#2f6fb0"/><circle cx="150" cy="98" r="14" fill="#f2c9a0"/><path d="M136 94 a14 14 0 0 1 28 0z" fill="#f2b705"/><path d="M165 125 L188 137" stroke="#f2c9a0" stroke-width="9" stroke-linecap="round"/><circle cx="194" cy="138" r="9" fill="#f2c9a0"/><rect x="50" y="142" width="300" height="14" fill="#8b99a6"/><rect x="70" y="156" width="10" height="34" fill="#6a7885"/><rect x="320" y="156" width="10" height="34" fill="#6a7885"/><path d="M240 142 l14 -24 l12 24z" fill="#c9d3dc" stroke="#5f6d7a" stroke-width="2"/><path d="M275 142 l10 -18 l12 18z" fill="#c9d3dc" stroke="#5f6d7a" stroke-width="2"/><path d="M68 142 q0 -16 14 -16 q14 0 16 16z" fill="#e0902a"/></svg>`,
+        hazards: [
+          { id: "h1", label: "素手での作業", x: 168, y: 118, w: 52, h: 38, explain: "手袋をしないと、とがったものや汚れから、手を守れません。" },
+          { id: "h2", label: "鋭い金属片", x: 232, y: 108, w: 76, h: 44, explain: "とがったものは、素手だと切り傷になりやすくなります。" },
+          { id: "h3", label: "使われていない手袋", x: 62, y: 110, w: 42, h: 36, explain: "手袋は、身につけて初めて役に立ちます。置いたままでは、手を守れません。" }
+        ],
+        question: "切り傷を防ぐために、どうするのがよいでしょうか?",
+        options: [
+          { text: "作業の前に保護手袋をつけ、とがったものは道具を使って取り分ける", correct: true, feedback: "手を直接ふれさせないことが、けがを防ぐ基本です。" },
+          { text: "短い作業だけなので、素手で済ませる", correct: false, feedback: "短い作業でも、一度のけがが大きくなることがあります。" },
+          { text: "手袋は、切り傷ができてからつける", correct: false, feedback: "けがをしてからでは、手遅れです。作業の前に身につけることが大切です。" }
+        ],
+        goals: [ "私たちは、作業の前に、保護手袋をつけます", "私たちは、とがったものは、素手でさわらず、道具を使います", "私たちは、手袋がいたんだら、すぐに交換します" ] },
+      { id: "w3", title: "人と車の通り道", description: "作業場の中を、人と車が動いています。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="170" y="196" width="100" height="30" fill="#f2c94c"/><path d="M185 196 v30 M205 196 v30 M225 196 v30 M245 196 v30" stroke="#2b333b" stroke-width="4"/><rect x="40" y="95" width="8" height="90" fill="#5f6d7a"/><rect x="28" y="178" width="40" height="6" fill="#5f6d7a"/><rect x="60" y="135" width="75" height="45" rx="5" fill="#e08a1e"/><path d="M75 135 L75 100 L125 100 L125 135" stroke="#2b333b" stroke-width="5" fill="none"/><circle cx="100" cy="118" r="11" fill="#f2c9a0"/><circle cx="80" cy="184" r="12" fill="#2b333b"/><circle cx="122" cy="184" r="12" fill="#2b333b"/><rect x="286" y="176" width="11" height="30" fill="#33404d"/><rect x="301" y="176" width="11" height="30" fill="#33404d"/><rect x="283" y="138" width="30" height="40" rx="6" fill="#2f6fb0"/><circle cx="298" cy="124" r="13" fill="#f2c9a0"/><path d="M285 120 a13 13 0 0 1 26 0z" fill="#f2b705"/></svg>`,
+        hazards: [
+          { id: "h1", label: "動いているフォークリフト", x: 25, y: 92, w: 115, h: 105, explain: "荷を積んだフォークリフトは、前や横が見えにくいことがあります。" },
+          { id: "h2", label: "近づいている人", x: 276, y: 110, w: 44, h: 98, explain: "車が近づいていることに、気づいていないようです。" },
+          { id: "h3", label: "人と車が交わる場所", x: 165, y: 192, w: 110, h: 38, explain: "人と車の通り道が交わる場所は、ぶつかる危険が高まります。" }
+        ],
+        question: "ぶつかりを防ぐために、どうするのがよいでしょうか?",
+        options: [
+          { text: "通り道を分け、交わる場所では止まって合図し、お互いに確認する", correct: true, feedback: "お互いが相手に気づいたことを、確かめ合うのが大切です。" },
+          { text: "お互いに気をつけて、急いで通る", correct: false, feedback: "急ぐと、相手に気づくのが遅れます。" },
+          { text: "車の運転手が、よけてくれるはずだと考える", correct: false, feedback: "運転手から、人が見えているとは限りません。" }
+        ],
+        goals: [ "私たちは、人と車の通り道を、分けて使います", "私たちは、車の通る場所を横切るときは、止まって確認します", "私たちは、運転する人と歩く人が、お互いに合図を送ります" ] }
+    ] },
+    { id: "warehouse", name: "倉庫", scenes: [
+      { id: "s1", title: "高く積まれた荷", description: "棚の近くに、荷物が積まれています。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="100" y="30" width="8" height="160" fill="#5f6d7a"/><rect x="250" y="30" width="8" height="160" fill="#5f6d7a"/><rect x="100" y="112" width="158" height="8" fill="#d6a21e"/><rect x="115" y="132" width="50" height="58" fill="#c58f4d"/><rect x="175" y="142" width="60" height="48" fill="#c58f4d"/><g transform="rotate(10 175 112)"><rect x="115" y="62" width="50" height="50" fill="#c58f4d" stroke="#8a5f2a" stroke-width="2"/><rect x="170" y="72" width="55" height="40" fill="#c58f4d" stroke="#8a5f2a" stroke-width="2"/></g><g transform="rotate(14 160 62)"><rect x="130" y="30" width="55" height="32" fill="#c58f4d" stroke="#8a5f2a" stroke-width="2"/></g><rect x="308" y="176" width="11" height="30" fill="#33404d"/><rect x="323" y="176" width="11" height="30" fill="#33404d"/><rect x="305" y="140" width="30" height="40" rx="6" fill="#2f6fb0"/><circle cx="320" cy="126" r="13" fill="#f2c9a0"/><path d="M307 122 a13 13 0 0 1 26 0z" fill="#f2b705"/></svg>`,
+        hazards: [
+          { id: "h1", label: "傾いた荷", x: 105, y: 20, w: 150, h: 95, explain: "積んだ荷が傾くと、くずれて落ちてくるおそれがあります。" },
+          { id: "h2", label: "荷の近くにいる人", x: 296, y: 112, w: 48, h: 96, explain: "荷がくずれたとき、近くにいると、巻き込まれるおそれがあります。" }
+        ],
+        question: "荷くずれを防ぐには、どうするのがよいでしょうか?",
+        options: [
+          { text: "荷を高く積みすぎず、まっすぐ積み直す。傾いた荷の近くには立ち入らない", correct: true, feedback: "くずれにくい積み方にして、人が近づかないようにします。" },
+          { text: "そのまま積み足して、高さをかせぐ", correct: false, feedback: "傾いた荷の上に積むと、さらにくずれやすくなります。" },
+          { text: "くずれたら、そのときに避ける", correct: false, feedback: "荷は、とつぜん落ちます。避ける時間がないことが多く、危険です。" }
+        ],
+        goals: [ "私たちは、荷が傾いているのを見つけたら、すぐに積み直します", "私たちは、高く積まれた荷の下や近くには、入らないようにします", "私たちは、積む前に、荷がまっすぐか確認します" ] },
+      { id: "s2", title: "フォークリフトの通路", description: "荷を運ぶ通路です。床には、線が引かれています。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><path d="M0 206 H400" stroke="#f2c94c" stroke-width="5" stroke-dasharray="14 8"/><rect x="10" y="40" width="90" height="150" fill="#c9d3dc" stroke="#5f6d7a" stroke-width="4"/><path d="M10 90 H100 M10 140 H100" stroke="#5f6d7a" stroke-width="4"/><rect x="160" y="178" width="12" height="32" fill="#33404d"/><rect x="176" y="178" width="12" height="32" fill="#33404d"/><rect x="157" y="146" width="34" height="36" rx="6" fill="#2f6fb0"/><circle cx="174" cy="132" r="13" fill="#f2c9a0"/><path d="M161 128 a13 13 0 0 1 26 0z" fill="#f2b705"/><rect x="225" y="95" width="7" height="90" fill="#5f6d7a"/><rect x="233" y="100" width="45" height="80" fill="#c58f4d" stroke="#8a5f2a" stroke-width="3"/><rect x="278" y="140" width="85" height="42" rx="5" fill="#e08a1e"/><path d="M295 140 V105 H350 V140" stroke="#2b333b" stroke-width="5" fill="none"/><circle cx="322" cy="123" r="11" fill="#f2c9a0"/><circle cx="300" cy="184" r="12" fill="#2b333b"/><circle cx="345" cy="184" r="12" fill="#2b333b"/></svg>`,
+        hazards: [
+          { id: "h1", label: "通路を歩いている人", x: 152, y: 118, w: 46, h: 100, explain: "車の通る通路を歩くと、ぶつかる危険があります。" },
+          { id: "h2", label: "荷で前が見えにくい車", x: 228, y: 90, w: 150, h: 110, explain: "荷を高く持ち上げた車は、前が見えにくくなります。" },
+          { id: "h3", label: "棚のかげの曲がり角", x: 8, y: 38, w: 96, h: 156, explain: "角は見通しが悪く、人と車が出会いがしらにぶつかりやすい場所です。" }
+        ],
+        question: "ぶつかりを防ぐために、どうするのがよいでしょうか?",
+        options: [
+          { text: "人が歩く道を別に決め、角では止まって左右を確認する", correct: true, feedback: "道を分けることと、角で止まることで、出会いがしらを防げます。" },
+          { text: "近道なので、急いで通路を横切る", correct: false, feedback: "車は、すぐには止まれません。急ぐと、さらに危険です。" },
+          { text: "手で合図するだけで、車が止まるのを待たずに進む", correct: false, feedback: "運転手が、合図に気づくとは限りません。止まったのを確かめてから、進みます。" }
+        ],
+        goals: [ "私たちは、車の通る通路を、歩かないようにします", "私たちは、見通しの悪い角では、必ず止まって左右を確認します", "私たちは、車の運転手と、目を合わせてから横切ります" ] },
+      { id: "s3", title: "通路に置かれたもの", description: "出入口や棚へ向かう通路です。",
+        svg: `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"><rect width="400" height="240" fill="#e9eff6"/><rect x="20" y="50" width="360" height="100" fill="#d7dee6" stroke="#8b99a6" stroke-width="3"/><path d="M20 100 H380" stroke="#8b99a6" stroke-width="4"/><rect x="40" y="62" width="40" height="36" fill="#c58f4d"/><rect x="90" y="70" width="50" height="28" fill="#c58f4d"/><rect x="250" y="112" width="45" height="36" fill="#c58f4d"/><rect x="340" y="14" width="42" height="24" rx="3" fill="#2f8f5b"/><rect y="190" width="400" height="50" fill="#b9c3cd"/><rect x="100" y="168" width="70" height="8" fill="#5f6d7a"/><rect x="165" y="132" width="6" height="40" fill="#5f6d7a"/><rect x="108" y="142" width="46" height="26" fill="#c58f4d" stroke="#8a5f2a" stroke-width="2"/><circle cx="112" cy="180" r="5" fill="#2b333b"/><circle cx="158" cy="180" r="5" fill="#2b333b"/><path d="M230 200 L300 196 L305 214 L235 218z" fill="#c58f4d" stroke="#8a5f2a" stroke-width="2"/></svg>`,
+        hazards: [
+          { id: "h1", label: "通路に置かれた台車", x: 92, y: 126, w: 90, h: 64, explain: "通路の台車は、つまずきや、ぶつかりの原因になります。" },
+          { id: "h2", label: "床に置かれた段ボール", x: 222, y: 188, w: 92, h: 36, explain: "床の段ボールは、足元が見えにくく、つまずきやすいものです。" }
+        ],
+        question: "通路の安全を守るために、どうするのがよいでしょうか?",
+        options: [
+          { text: "使い終わったらすぐ戻し、通路には物を置かない。置き場所を決めておく", correct: true, feedback: "置き場所を決めておくと、みんなが同じように守れます。" },
+          { text: "いそがしいときは、一時的に通路へ置いてよい", correct: false, feedback: "「一時的」でも、その間に、だれかがつまずくおそれがあります。" },
+          { text: "通る人が、気をつければよい", correct: false, feedback: "気をつけても、急いでいるときや、荷物で足元が見えないときは、防げません。" }
+        ],
+        goals: [ "私たちは、通路には、物を置かないようにします", "私たちは、台車や段ボールは、使い終わったらすぐ決まった場所へ戻します", "私たちは、通路に物があるのを見つけたら、その場で片づけます" ] }
+    ] }
+  ],
+  references: [
+    { name: "厚生労働省「職場のあんぜんサイト」", note: "危険予知訓練(KYT)や、労働災害の事例など、安全衛生に関する情報を公開しています。" },
+    { name: "中央労働災害防止協会", note: "危険予知(KY)活動など、職場の安全衛生活動に関する情報を公開しています。" },
+    { name: "環境省", note: "廃棄物の適正な処理に関する、啓発の情報を公開しています。" },
+    { name: "公益社団法人 全日本トラック協会", note: "荷役作業など、トラック運送の安全に関する情報を公開しています。" }
+  ]
+};
+
+/* =====================================================================
+   ここから先は、触らない(プログラム本体)
+   ===================================================================== */
+(function () {
+  'use strict';
+  var VB_W = 400, VB_H = 240;           // SVGの座標の大きさ(CONFIGのviewBoxと同じ)
+  var KEY = 'kyMiniGame.v1';
+
+  /* ---------- 小さな道具 ---------- */
+  function h(tag, attrs) {
+    var e = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v === false || v == null) return;
+      if (k === 'class') e.className = v;
+      else if (k.indexOf('on') === 0) e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, '');
+      else e.setAttribute(k, v);
+    });
+    var kids = Array.prototype.slice.call(arguments, 2);
+    (function add(list) {
+      list.forEach(function (c) {
+        if (Array.isArray(c)) return add(c);
+        if (c == null || c === false) return;
+        e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+      });
+    })(kids);
+    return e;
+  }
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  var $app = document.getElementById('app');
+
+  /* ---------- 場面の索引 ---------- */
+  var sceneIndex = {};
+  CONFIG.industries.forEach(function (ind) {
+    ind.scenes.forEach(function (s) { sceneIndex[s.id] = s; });
+  });
+
+  /* ---------- 記録の保存(localStorage。使えなくても動く) ---------- */
+  var storageOK = true;
+  var data = { version: 1, theme: 'auto', records: Object.create(null), best: Object.create(null) };
+
+  function sanitize(d) {
+    var out = { version: 1, theme: 'auto', records: Object.create(null), best: Object.create(null) };
+    if (!d || typeof d !== 'object') return out;
+    if (d.theme === 'light' || d.theme === 'dark' || d.theme === 'auto') out.theme = d.theme;
+    var recs = d.records && typeof d.records === 'object' ? d.records : {};
+    Object.keys(recs).forEach(function (id) {
+      if (!Object.prototype.hasOwnProperty.call(sceneIndex, id)) return;   // 知らない場面は捨てる
+      var r = recs[id];
+      if (!r || typeof r !== 'object') return;
+      var scene = sceneIndex[id];
+      var valid = scene.hazards.map(function (x) { return x.id; });
+      var found = Array.isArray(r.found) ? r.found.filter(function (x) { return valid.indexOf(x) >= 0; }) : [];
+      out.records[id] = {
+        found: found.slice(0, 20),
+        total: scene.hazards.length,
+        correct: r.correct === true ? true : (r.correct === false ? false : null),
+        goal: typeof r.goal === 'string' ? r.goal.slice(0, 200) : null,
+        at: typeof r.at === 'string' ? r.at.slice(0, 40) : '',
+        score: (typeof r.score === 'number' && isFinite(r.score)) ? Math.max(0, Math.min(100000, Math.round(r.score))) : 0
+      };
+    });
+    var bs = d.best && typeof d.best === 'object' ? d.best : {};
+    CONFIG.industries.forEach(function (ind) {
+      var b = bs[ind.id];
+      if (b && typeof b === 'object' && typeof b.score === 'number' && isFinite(b.score) && ['S', 'A', 'B', 'C'].indexOf(b.rank) >= 0) {
+        out.best[ind.id] = { score: Math.max(0, Math.min(100000, Math.round(b.score))), rank: b.rank };
+      }
+    });
+    return out;
+  }
+  try {
+    localStorage.setItem(KEY + '.test', '1');
+    localStorage.removeItem(KEY + '.test');
+  } catch (e) { storageOK = false; }
+  if (storageOK) {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) data = sanitize(JSON.parse(raw));
+    } catch (e) { /* 壊れたデータは無視して、新しく始める */ }
+  }
+  function updateBanner() {
+    document.getElementById('storage-warn').hidden = storageOK;
+  }
+  function save() {
+    if (!storageOK) return;
+    try { localStorage.setItem(KEY, JSON.stringify(data)); }
+    catch (e) { storageOK = false; updateBanner(); }
+  }
+  function applyTheme() {
+    if (data.theme === 'light' || data.theme === 'dark') document.documentElement.setAttribute('data-theme', data.theme);
+    else document.documentElement.removeAttribute('data-theme');
+  }
+
+  /* ---------- 画面の状態 ---------- */
+  var state = { industry: null, idx: 0, stage: 'find', run: {} };
+  function curIndustry() {
+    return CONFIG.industries.filter(function (i) { return i.id === state.industry; })[0];
+  }
+  function getRun(scene) {
+    if (!state.run[scene.id]) {
+      state.run[scene.id] = { found: [], misses: 0, combo: 0, score: 0, hinted: false, pick: null, correct: null, goal: null, order: null };
+    }
+    return state.run[scene.id];
+  }
+  function show(node, sel) {
+    $app.replaceChildren(node);
+    window.scrollTo(0, 0);
+    var t = (sel && node.querySelector(sel)) || node.querySelector('[data-focus]');
+    if (t) t.focus();
+  }
+
+  /* ---------- 得点とランク ---------- */
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function sceneMax(scene) { var n = scene.hazards.length; return n * 100 + 10 * (n * (n - 1) / 2) + 250; }
+  function totalScore(ind) { return ind.scenes.reduce(function (a, s) { var r = state.run[s.id]; return a + (r ? r.score : 0); }, 0); }
+  function totalMax(ind) { return ind.scenes.reduce(function (a, s) { return a + sceneMax(s); }, 0); }
+  function rankOf(ratio) {
+    if (ratio >= 0.9) return { letter: 'S', name: '現場の達人' };
+    if (ratio >= 0.75) return { letter: 'A', name: '頼れる仲間' };
+    if (ratio >= 0.5) return { letter: 'B', name: 'あと一歩' };
+    return { letter: 'C', name: 'ここから伸ばそう' };
+  }
+  function stars(ratio) {
+    var n = ratio >= 0.9 ? 3 : (ratio >= 0.6 ? 2 : 1);
+    return h('span', { class: 'stars', 'aria-label': '星3つ中' + n + 'つ' }, '★'.repeat(n) + '☆'.repeat(3 - n));
+  }
+  function setScore() {
+    var el = document.getElementById('score');
+    if (el) el.textContent = fmt(totalScore(curIndustry()));
+  }
+
+  /* ---------- トップ ---------- */
+  function renderTop() {
+    var grid = h('div', { class: 'grid' }, CONFIG.industries.map(function (ind, n) {
+      var done = ind.scenes.filter(function (s) { return data.records[s.id]; }).length;
+      var b = data.best[ind.id];
+      return h('button', { type: 'button', class: 'card-btn', onclick: function () { startIndustry(ind.id); } },
+        h('span', { class: 'no', 'aria-hidden': 'true' }, '0' + (n + 1)),
+        h('strong', {}, ind.name),
+        h('span', {}, ind.scenes.length + 'つの場面 ・ 完了 ' + done + '/' + ind.scenes.length),
+        h('span', { class: 'best' }, b ? 'ベスト:ランク ' + b.rank + '(' + fmt(b.score) + '点)' : 'ベスト:まだありません'));
+    }));
+    show(h('section', {},
+      h('p', { class: 'eyebrow' }, CONFIG.companyName),
+      h('h1', { tabindex: '-1', 'data-focus': true }, '危険予知(KY)ミニゲーム'),
+      h('p', { class: 'lead' }, CONFIG.intro),
+      h('div', { class: 'panel' },
+        h('h2', {}, 'あそびかた'),
+        h('ul', { class: 'plain' },
+          h('li', {}, '① みつける:絵の中の危険を探します。1つ見つけるごとに +100点。続けて見つけると、ボーナスがつきます。'),
+          h('li', {}, '② 考える:防ぐ方法を選びます。正解で +200点。'),
+          h('li', {}, '③ 決める:自分たちの行動目標を決めます。+50点。')),
+        h('p', { class: 'note' }, '合計の点数で、ランク S・A・B・C が決まります。S をめざしましょう!ヒントを使うと、その場面で見つけた危険の点数が少し下がります。')),
+      h('h2', {}, '業種を選ぶ'),
+      grid,
+      h('p', { class: 'note' }, 'タップのほか、Tabキーで選び、Enterキーで決めることもできます。')
+    ));
+  }
+  function startIndustry(id) {
+    state.industry = id; state.idx = 0; state.stage = 'find'; state.run = {};
+    renderScene();
+  }
+
+  /* ---------- 場面 ---------- */
+  function posLabel(hz) {
+    var cx = (hz.x + hz.w / 2) / VB_W, cy = (hz.y + hz.h / 2) / VB_H;
+    var H = cx < 0.34 ? '左' : (cx < 0.67 ? '中央' : '右');
+    var V = cy < 0.4 ? '上' : (cy < 0.7 ? '中ほど' : '下');
+    return '絵の' + H + 'の' + V;
+  }
+  function header(ind, scene) {
+    var si = state.stage === 'find' ? 0 : (state.stage === 'think' ? 1 : 2);
+    var names = ['① みつける', '② 考える', '③ 決める'];
+    return h('div', { class: 'hud' },
+      h('div', {},
+        h('p', { class: 'crumb' }, ind.name + ' ・ 場面 ' + (state.idx + 1) + '/' + ind.scenes.length),
+        h('ol', { class: 'pips', 'aria-label': '場面の進み' }, ind.scenes.map(function (s, i) {
+          var done = i < state.idx || (i === state.idx && state.stage === 'clear');
+          return h('li', { class: done ? 'done' : (i === state.idx ? 'cur' : ''), 'aria-current': i === state.idx ? 'step' : false }, done ? '✓' : String(i + 1));
+        }))),
+      h('ol', { class: 'steps', 'aria-label': '進み方' }, names.map(function (n, i) {
+        return h('li', { class: i === si ? 'cur' : '', 'aria-current': i === si ? 'step' : false }, n);
+      })),
+      h('p', { class: 'score-box' }, h('span', { class: 'lab' }, '得点'), ' ', h('span', { id: 'score', class: 'score' }, fmt(totalScore(ind)))));
+  }
+  function renderScene(sel) {
+    var ind = curIndustry(), scene = ind.scenes[state.idx], run = getRun(scene);
+    var box = h('section', {}, header(ind, scene));
+    if (state.stage === 'find') buildFind(box, scene, run);
+    else if (state.stage === 'think') buildThink(box, scene, run);
+    else if (state.stage === 'decide') buildDecide(box, ind, scene, run);
+    else buildClear(box, ind, scene, run);
+    show(box, sel);
+  }
+
+  function buildFind(box, scene, run) {
+    var total = scene.hazards.length;
+    var stage = h('div', { class: 'stage' });
+    stage.innerHTML = scene.svg;                         // 自作SVG(CONFIGの内容)
+    var svg = stage.querySelector('svg');
+    if (svg) {
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-label', scene.title + 'のイラスト。' + scene.description);
+      svg.setAttribute('focusable', 'false');
+    }
+    var msg = h('p', { class: 'msg', role: 'status' });
+    var count = h('p', { class: 'count' });
+    var list = h('ul', { class: 'found-list', 'aria-label': '見つけた危険' });
+    var next = h('button', { type: 'button', class: 'btn primary', onclick: function () { state.stage = 'think'; renderScene(); } });
+    var hintBtn = h('button', { type: 'button', class: 'btn', onclick: function () {
+      run.hinted = true; stage.classList.add('hint');
+      msg.textContent = 'ヒント:光っている場所を、よく見てみましょう。(これから見つける危険は、点数が少し下がります)';
+    } }, 'ヒントを見る');
+
+    function addItem(hz) {
+      list.append(h('li', {}, h('strong', {}, hz.label), ':' + hz.explain));
+    }
+    function refresh() {
+      count.textContent = '見つけた危険:' + run.found.length + ' / ' + total;
+      next.textContent = run.found.length >= total ? '次へ:対策を考える' : '探すのをやめて、次へ';
+    }
+    var buttons = [];
+    scene.hazards.forEach(function (hz, i) {
+      var isFound = run.found.indexOf(hz.id) >= 0;
+      var b = h('button', {
+        type: 'button', class: 'hz' + (isFound ? ' found' : ''),
+        style: '--cx:' + ((hz.x + hz.w / 2) / VB_W * 100) + '%;--cy:' + ((hz.y + hz.h / 2) / VB_H * 100) + '%;--w:' + (hz.w / VB_W * 100) + '%;--h:' + (hz.h / VB_H * 100) + '%',
+        'aria-label': isFound ? '見つけた危険:' + hz.label : '気になる場所 ' + (i + 1) + '(' + posLabel(hz) + ')。押すと、危険かどうか分かります。'
+      });
+      b.addEventListener('click', function () {
+        if (run.found.indexOf(hz.id) >= 0) { msg.textContent = 'ここは、もう見つけています。'; return; }
+        run.found.push(hz.id);
+        run.combo = (run.combo || 0) + 1;
+        var pts = (run.hinted ? 60 : 100) + (run.combo > 1 ? 10 * (run.combo - 1) : 0);
+        run.score += pts;
+        b.classList.add('found');
+        b.setAttribute('aria-label', '見つけた危険:' + hz.label);
+        addItem(hz);
+        msg.textContent = '+' + pts + '点 見つけました!「' + hz.label + '」' + (run.combo > 1 ? '(コンボ ×' + run.combo + ')' : '');
+        refresh(); setScore();
+      });
+      buttons.push(b); stage.append(b);
+      if (isFound) addItem(hz);
+    });
+    // 絵の、危険でない場所をタップしたとき
+    stage.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.hz')) return;
+      run.misses++; run.combo = 0;
+      msg.textContent = 'そこは、あまり危なくなさそうです。もう一度、探してみましょう。';
+    });
+    if (run.hinted) stage.classList.add('hint');
+    refresh();
+
+    box.append(
+      h('h2', { tabindex: '-1', 'data-focus': true }, scene.title),
+      h('p', {}, scene.description),
+      h('p', { class: 'note' }, '絵の中の「危ない場所」を、タップして探します。(キーボードでは、Tabキーで場所を選び、Enterキーで決めます。)'),
+      stage, count, msg,
+      h('div', { class: 'row' }, hintBtn, next),
+      list
+    );
+  }
+
+  function buildThink(box, scene, run) {
+    var answered = run.pick !== null;
+    if (!run.order) run.order = shuffle(scene.options.map(function (_, i) { return i; }));
+    var opts = h('div', { class: 'opts' }, run.order.map(function (i, pos) {
+      var o = scene.options[i], cls = 'opt', prefix = '';
+      if (answered) {
+        if (o.correct) { cls += ' is-correct'; prefix = '○ '; }
+        else if (i === run.pick) { cls += ' is-wrong'; prefix = '× '; }
+      }
+      return h('button', {
+        type: 'button', class: cls,
+        'aria-disabled': answered ? 'true' : false,
+        'aria-pressed': answered ? String(i === run.pick) : false,
+        onclick: function () {
+          if (run.pick !== null) return;
+          run.pick = i; run.correct = !!o.correct;
+          if (run.correct) run.score += 200;
+          renderScene();
+        }
+      }, h('span', { class: 'k', 'aria-hidden': 'true' }, 'ABC'.charAt(pos)), prefix + o.text);
+    }));
+    box.append(
+      h('h2', { tabindex: '-1', 'data-focus': answered ? false : true }, '② 考える:どうすれば防げる?'),
+      h('p', {}, h('strong', {}, scene.title)),
+      h('p', {}, scene.question),
+      opts
+    );
+    if (answered) {
+      var picked = scene.options[run.pick];
+      var good = scene.options.filter(function (o) { return o.correct; })[0];
+      box.append(h('div', { class: 'fb ' + (run.correct ? 'ok' : 'ng'), tabindex: '-1', 'data-focus': true, role: 'status' },
+        h('strong', {}, run.correct ? '○ 正解です(+200点)' : '× おしい!ほかの方法が、よさそうです'),
+        h('p', {}, picked.feedback),
+        run.correct ? null : h('p', {}, h('strong', {}, 'よい対策:'), good.text + '。' + good.feedback)
+      ));
+      box.append(h('div', { class: 'row' },
+        h('button', { type: 'button', class: 'btn primary', onclick: function () { state.stage = 'decide'; renderScene(); } }, '次へ:行動目標を決める')));
+    }
+  }
+
+  function buildDecide(box, ind, scene, run) {
+    var last = state.idx >= ind.scenes.length - 1;
+    var goals = h('div', { class: 'opts' }, scene.goals.map(function (g) {
+      var sel = run.goal === g;
+      return h('button', {
+        type: 'button', class: 'goal', 'aria-pressed': String(sel),
+        onclick: function () { run.goal = g; renderScene('.goal[aria-pressed="true"]'); }
+      }, (sel ? '✓ ' : '') + g);
+    }));
+    var ok = h('button', {
+      type: 'button', class: 'btn primary', disabled: run.goal === null,
+      onclick: function () {
+        run.score += 50;
+        data.records[scene.id] = { found: run.found.slice(), total: scene.hazards.length, correct: run.correct, goal: run.goal, at: new Date().toISOString(), score: run.score };
+        save();
+        state.stage = 'clear'; renderScene();
+      }
+    }, 'これに決める');
+    box.append(
+      h('h2', { tabindex: '-1', 'data-focus': true }, '③ 決める:私たちの行動目標'),
+      h('p', {}, '「' + scene.title + '」について、自分たちが守る行動目標を、1つ選びます。決めると +50点です。'),
+      goals, h('div', { class: 'row' }, ok)
+    );
+  }
+
+  function buildClear(box, ind, scene, run) {
+    var last = state.idx >= ind.scenes.length - 1;
+    var ratio = run.score / sceneMax(scene);
+    box.append(
+      h('h2', { tabindex: '-1', 'data-focus': true }, '場面クリア!'),
+      h('p', {}, h('strong', {}, scene.title), ' ', stars(ratio)),
+      h('div', { class: 'panel' },
+        h('ul', { class: 'plain' },
+          h('li', {}, '危険を見つけた数:' + run.found.length + ' / ' + scene.hazards.length),
+          h('li', {}, '対策:' + (run.correct ? '○ 正解(+200点)' : '× 不正解(+0点)')),
+          h('li', {}, '行動目標:+50点')),
+        h('p', { class: 'big' }, 'この場面 ' + fmt(run.score) + ' 点 / 合計 ' + fmt(totalScore(ind)) + ' 点')),
+      h('p', {}, h('strong', {}, '決めた行動目標:'), run.goal),
+      h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () {
+        if (!last) { state.idx++; state.stage = 'find'; renderScene(); } else renderResult();
+      } }, last ? '結果を見る' : '次の場面へ'))
+    );
+  }
+
+  /* ---------- 結果と復習 ---------- */
+  function renderResult() {
+    var ind = curIndustry();
+    var totalH = 0, foundH = 0, correctN = 0;
+    var rows = ind.scenes.map(function (s) {
+      var r = getRun(s);
+      totalH += s.hazards.length; foundH += r.found.length; if (r.correct) correctN++;
+      return { s: s, r: r };
+    });
+    var score = totalScore(ind), max = totalMax(ind), rk = rankOf(score / max);
+    var prev = data.best[ind.id];
+    var isBest = !prev || score > prev.score;
+    if (isBest) { data.best[ind.id] = { score: score, rank: rk.letter }; save(); }
+    var missed = [];
+    rows.forEach(function (x) {
+      var m = x.s.hazards.filter(function (hz) { return x.r.found.indexOf(hz.id) < 0; });
+      if (m.length) missed.push({ s: x.s, list: m });
+    });
+    var review = missed.length
+      ? missed.map(function (m) {
+          return h('div', { class: 'panel' },
+            h('h3', {}, m.s.title),
+            h('ul', { class: 'plain' }, m.list.map(function (hz) { return h('li', {}, h('strong', {}, hz.label), ':' + hz.explain); })));
+        })
+      : [h('p', {}, '見逃した危険は、ありませんでした。すばらしいです!')];
+    var bestLine = !prev ? h('p', { class: 'chip' }, 'はじめての記録です')
+      : (isBest ? h('p', { class: 'chip' }, 'ベスト更新!(前回 ' + fmt(prev.score) + ' 点)') : h('p', { class: 'note' }, 'これまでのベスト:' + fmt(prev.score) + ' 点'));
+    show(h('section', {},
+      h('h1', { tabindex: '-1', 'data-focus': true }, '結果:' + ind.name),
+      h('div', { class: 'hero' },
+        h('div', { class: 'rank', role: 'img', 'aria-label': 'ランク ' + rk.letter }, rk.letter),
+        h('div', {},
+          h('p', { class: 'rank-name' }, 'ランク ' + rk.letter + ':' + rk.name),
+          h('p', { class: 'big' }, fmt(score) + ' 点 / ' + fmt(max) + ' 点'),
+          bestLine)),
+      h('div', { class: 'panel' },
+        h('p', {}, '見つけた危険:' + foundH + ' / ' + totalH),
+        h('p', {}, '正しい対策を選べた数:' + correctN + ' / ' + ind.scenes.length)),
+      h('h2', {}, '場面ごとの結果'),
+      h('div', { class: 'kv' }, rows.map(function (x) {
+        return h('div', { class: 'panel' },
+          h('h3', {}, x.s.title, ' ', stars(x.r.score / sceneMax(x.s))),
+          h('p', {}, '見つけた危険:' + x.r.found.length + ' / ' + x.s.hazards.length + ' ・ 対策:' + (x.r.correct ? '○ 正解' : '× 不正解') + ' ・ ' + fmt(x.r.score) + ' 点'),
+          h('p', {}, h('strong', {}, '決めた行動目標:'), x.r.goal || ''));
+      })),
+      h('h2', {}, '復習:見逃した危険'),
+      review,
+      h('div', { class: 'row' },
+        h('button', { type: 'button', class: 'btn primary', onclick: function () { startIndustry(ind.id); } }, 'もう一度やる'),
+        h('button', { type: 'button', class: 'btn', onclick: renderTop }, '別の業種を選ぶ'),
+        h('button', { type: 'button', class: 'btn', onclick: renderCustom }, '貴社版では、ここが変わります')),
+      h('p', { class: 'note' }, CONFIG.disclaimer)
+    ));
+  }
+
+  /* ---------- 貴社版では ---------- */
+  function renderCustom() {
+    var c = CONFIG.customPage;
+    show(h('section', {},
+      h('h1', { tabindex: '-1', 'data-focus': true }, c.title),
+      h('p', { class: 'lead' }, c.lead),
+      h('div', { class: 'kv' }, c.items.map(function (it) {
+        return h('div', { class: 'panel' }, h('h3', {}, it.title), h('p', {}, it.text));
+      })),
+      h('p', {}, c.deliveryNote),
+      c.contact ? h('p', {}, c.contact) : null,
+      h('div', { class: 'panel' }, h('strong', {}, CONFIG.disclaimer)),
+      h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: renderTop }, 'トップへ戻る'))
+    ));
+  }
+
+  /* ---------- 設定(記録の書き出し/読み込み) ---------- */
+  function renderSettings() {
+    var out = h('p', { class: 'msg', role: 'status' });
+    function say(t) { out.textContent = t; }
+    var themeSel = h('select', { id: 'theme', onchange: function (e) { data.theme = e.target.value; applyTheme(); save(); say('表示の色を変えました。'); } },
+      [['auto', '自動(端末の設定に合わせる)'], ['light', 'ライト'], ['dark', 'ダーク']].map(function (p) {
+        return h('option', { value: p[0], selected: data.theme === p[0] }, p[1]);
+      }));
+    var file = h('input', { type: 'file', id: 'imp', accept: 'application/json,.json', onchange: function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      if (f.size > 1000000) { say('ファイルが大きすぎます。このゲームで書き出したファイルを選んでください。'); return; }
+      var rd = new FileReader();
+      rd.onload = function () {
+        try {
+          var d = JSON.parse(String(rd.result));
+          if (!d || typeof d !== 'object' || d.app !== 'ky-mini-game' || !d.records || typeof d.records !== 'object') throw new Error('bad');
+          if (!window.confirm('いまの記録を、読み込んだ記録でおきかえます。よろしいですか?')) { say('読み込みを、やめました。'); return; }
+          var san = sanitize(d); data.records = san.records; data.best = san.best; save();
+          say('記録を読み込みました。');
+        } catch (err) { say('読み込めませんでした。このゲームで書き出したJSONファイルを選んでください。'); }
+      };
+      rd.onerror = function () { say('ファイルを読めませんでした。'); };
+      rd.readAsText(f);
+    } });
+    function exportJson() {
+      try {
+        var d = new Date();
+        var name = 'ky-record-' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '.json';
+        var payload = { app: 'ky-mini-game', version: 1, exportedAt: d.toISOString(), records: data.records, best: data.best };
+        var url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+        var a = h('a', { href: url, download: name });
+        document.body.append(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        say('記録を書き出しました(' + name + ')。');
+      } catch (e) { say('書き出せませんでした。'); }
+    }
+    show(h('section', {},
+      h('h1', { tabindex: '-1', 'data-focus': true }, '設定'),
+      h('div', { class: 'panel' },
+        h('h2', {}, '学習記録の書き出し・読み込み'),
+        h('p', {}, '記録は、このブラウザの中にだけ保存されます。ブラウザのデータを消したり、別の端末に変えたりすると、記録も消えます。ときどき、書き出して保管しておくことをおすすめします。'),
+        h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: exportJson }, '記録を書き出す(JSON)')),
+        h('label', { for: 'imp' }, '書き出した記録を読み込む'), file),
+      h('div', { class: 'panel' },
+        h('h2', {}, '表示の色'),
+        h('label', { for: 'theme' }, 'テーマ'), themeSel),
+      h('div', { class: 'panel' },
+        h('h2', {}, '記録を消す'),
+        h('p', {}, 'このブラウザに保存した記録を、すべて消します。'),
+        h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn', onclick: function () {
+          if (!window.confirm('記録をすべて消します。よろしいですか?(書き出したファイルは、消えません)')) return;
+          data.records = Object.create(null); data.best = Object.create(null); save(); say('記録を消しました。');
+        } }, '記録を消す'))),
+      out,
+      h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn', onclick: renderTop }, 'トップへ戻る'))
+    ));
+  }
+
+  /* ---------- 共通部分(見出し・メニュー・参考資料) ---------- */
+  function buildChrome() {
+    document.title = CONFIG.companyName + ' 危険予知(KY)ミニゲーム';
+    document.getElementById('brand').textContent = CONFIG.companyName;
+    var nav = document.getElementById('nav');
+    nav.append(
+      h('button', { type: 'button', class: 'btn', onclick: renderTop }, 'トップ'),
+      h('button', { type: 'button', class: 'btn', onclick: renderCustom }, '貴社版では'),
+      h('button', { type: 'button', class: 'btn', onclick: renderSettings }, '設定'));
+    var foot = document.getElementById('foot');
+    foot.append(
+      h('p', {}, h('strong', {}, CONFIG.disclaimer)),
+      h('h2', {}, '参考資料'),
+      h('dl', {}, CONFIG.references.map(function (r) { return [h('dt', {}, r.name), h('dd', {}, r.note)]; })),
+      h('p', {}, 'この教材の文章と絵は、独自に作ったものです。内容は一般的な考え方で、最新の情報や正式な手順は、各機関の公式サイトや、自社の決まりで確認してください。'));
+  }
+
+  applyTheme();
+  updateBanner();
+  buildChrome();
+  renderTop();
+})();
+</script>
+</body>
+</html>
